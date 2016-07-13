@@ -3,7 +3,7 @@
 import pytest
 from datetime import datetime
 
-from snaptime.main import from_relative_time
+from snaptime.main import snap
 
 
 # pylint: disable=bad-whitespace
@@ -50,4 +50,4 @@ from snaptime.main import from_relative_time
 ])
 def test_compare_begin_recalc(input_time, rel_time, output_time):
 
-    assert from_relative_time(input_time, rel_time) == output_time
+    assert snap(input_time, rel_time) == output_time
