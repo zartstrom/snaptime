@@ -3,7 +3,10 @@
 import pytest
 from datetime import datetime
 
-from recalc.time_range import from_relative_time
+from snaptime.main import from_relative_time
+
+
+# pylint: disable=bad-whitespace
 
 
 @pytest.mark.parametrize("input_time,rel_time,output_time", [
