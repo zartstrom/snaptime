@@ -3,7 +3,8 @@
 import pytest
 from datetime import datetime
 
-from snaptime.main import snap, parse, get_unit
+from snaptime import snap
+from snaptime.main import parse, get_unit
 
 
 # pylint: disable=bad-whitespace

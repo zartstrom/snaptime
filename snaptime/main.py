@@ -143,8 +143,6 @@ def parse(instruction):
             transformation = DeltaTransformation(group)
 
         result.append(transformation)
-
         instruction = match.group(2)
-        print instruction
 
     return result
