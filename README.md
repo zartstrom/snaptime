@@ -1,17 +1,17 @@
 
 ### snaptime
 
-The snaptime package is about simply manipulating timestamps.
+The snaptime package is about transforming timestamps in a simple manner.
 
 It is inspired by splunks relative time modifiers, see docs [here][splunk-docs].
 
 ### Motivating example:
 Say Harry wants to send a letter and there is mailbox right to his door, which is cleared every day at 16:00h. The post delivers letters the next day at 11:00h. So given a datetime `t` - at which Harry throws the letter into the mailbox - when does the letter get delivered?
 
-One straightforward solution would be:
+One straightforward implementation would be:
 
 1. check whether `t` is before or after 16:00h
-2. truncate hours, minutes and seconds and
+2. truncate hours, minutes and seconds
 3. add 1 or 2 days (according step 1) plus 11h
 
 This would take some lines of code, but with snaptime the solution would be a one-liner:
@@ -33,8 +33,8 @@ There are two types of transformations that can be chained freely in the snap fu
 
 #### Snap Transformation
 
-A snap transformation is written as `@<time-unit>`, which truncates to the given time unit. I.e. `@h` applied to a timestamp sets minutes, seconds and microseconds to zero. Snapping to seconds, minutes, days, months, years work the same way.
-But it is also possible to snap to weeks (`@w`), and specific week days (`@w0`, `@w1`, ..., `@w6` for Sunday, Monday, ..., Saturday)
+A snap transformation is written as `@<timeunit>`, which truncates to the given time unit. I.e. `@h` applied to a timestamp sets minutes, seconds and microseconds to zero. Snapping to seconds, minutes, days, months, years work the same way.
+Further it is also possible to snap to weeks (`@w`), and even to specific week days (`@w0`, `@w1`, ..., `@w6` for Sunday, Monday, ..., Saturday).
 
 #### Delta Transformation
 
@@ -42,7 +42,7 @@ A delta transformation (the name is kind of an overstatement..) works analogousl
 
 ### Time Units
 
-There are several strings for each time unit that indicate that same time unit. Here is a table:
+There are several strings for each time unit that indicate that same time unit. Here is the full table:
 
 | Unit | Equal notations |
 |:---:|:---|
@@ -54,7 +54,7 @@ There are several strings for each time unit that indicate that same time unit. 
 |months| mon, month, months|
 |years| y, yr, yrs, year, years|
 
-So for a given datetime `t` this assertion holds true
+For a given datetime `t` i.e. this assertion holds true
 
 ```python
 assert snap(t, "-3hours@day+2weeks@month") == snap(t, "-3hrs@d+2w@mon")
