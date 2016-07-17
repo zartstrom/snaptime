@@ -1,12 +1,12 @@
 
 
 from datetime import timedelta
-from dateutil.relativedelta import relativedelta  # can handle months
+from dateutil.relativedelta import relativedelta
 import re
 
 
 # see also
-# http://docs.splunk.com/Documentation/Splunk/6.4.0/SearchReference/SearchTimeModifiers#How_to_specify_relative_time_modifiers
+# http://docs.splunk.com/Documentation/Splunk/latest/SearchReference/SearchTimeModifiers#How_to_specify_relative_time_modifiers
 UNIT_LISTS = {
     "seconds": ["s", "sec", "secs", "second", "seconds"],
     "minutes": ["m", "min", "minute", "minutes"],
@@ -29,6 +29,29 @@ def get_unit(string):
     raise ValueError("Unknown unit string <%s>" % string)
 
 
+def get_weekday(string):
+    result = get_num(string, default=None)
+    if result:
+        assert result >= 0 and result <= 7
+    return result
+
+
+def get_num(string, default=1):
+    if string is None or string == "":
+        return default
+
+    try:
+        result = int(string)
+    except ValueError:
+        raise
+
+    return result
+
+
+def get_mult(string):
+    return -1 if string == "-" else 1
+
+
 def truncate(datetime_, unit):
     if unit == "minutes":
         result = datetime_.replace(second=0, microsecond=0)
@@ -47,80 +70,81 @@ def truncate(datetime_, unit):
     return result
 
 
-def parse_timedelta(string):
-    pattern = re.compile(r"^(?P<unary>[-+]?)(?P<number>\d+)(?P<unit>[a-zA-Z]+)$")
-    match = pattern.match(string)
-    groupdict = match.groupdict()
-
-    mult = -1 if groupdict["unary"] == "-" else 1
-    number = int(groupdict["number"]) if groupdict["number"] is not None else 1
-    unit = get_unit(groupdict["unit"])
-    return relativedelta(**{unit: mult * number})  # pylint: disable=star-args
-
-
-def add_snap(datetime_, snap_string):
-    pattern = re.compile(r"^@(?P<unit>[a-zA-Z]+)(?P<weekday>\d+)?$")
-    match = pattern.match(snap_string)
-
-    if not match:
-        raise ValueError("Could not find valid snap time: '%s'" % snap_string)
-    groupdict = match.groupdict()
-
-    result = datetime_
-
-    snap_unit = get_unit(groupdict["unit"])
-    weekday = groupdict["weekday"]
-    if weekday is not None and snap_unit == "weeks":
-        result = result - timedelta((datetime_.isoweekday() - int(weekday)) % 7)
-        result = truncate(result, "days")
-    elif snap_unit == "weeks":
-        result = result - timedelta((datetime_.isoweekday() - 0) % 7)
-        result = truncate(result, "days")
-    else:
-        # normal case
-        result = truncate(result, snap_unit)
-
-    return result
-
-
-def snap(scheduled_time, relative_time):
+def snap(dttm, instruction):
     """
-
-    Calculates the actual datetime (begin or end) for a saved search from the scheduled time and relative time
-    statement (dispatch.earliest_time or dispatch.latest_time)
-
     Args:
-        relative_time (string): a relative time statement like "-1h@h"
-        scheduled_time (datetime):
+        instruction (string): a string that encodes 0 to n transformations of a time, i.e. "-1h@h", "@mon+2d+4h", ...
+        dttm (datetime):
     Returns:
-        datetime: The "sum" of scheduled time and the relative time
+        datetime: The datetime resulting from applying all transformations to the input datetime.
 
     Example:
-        >>> from_relative_time("-1h@h", datetime(2016, 1, 1, 15, 30))
+        >>> snap(datetime(2016, 1, 1, 15, 30), "-1h@h")
         datetime(2016, 1, 1, 14)
     """
-    # delta_pattern = "([-+]?\d+[a-zA-Z]+)?"
-    # snap_pattern = "@([a-zA-Z]+\d*)"
-    pattern = re.compile(r"^(?P<prefix>[-+]?\d+[a-zA-Z]+)?(?P<snap>@[a-zA-Z]+\d*)(?P<postfix>[-+]?\d+[a-zA-Z]+)?")
+    transformations = parse(instruction)
+    return reduce(lambda dt, transformation: transformation.apply_to(dt), transformations, dttm)
 
-    match = pattern.match(relative_time)
 
-    if not match:
-        raise ValueError("Could not find valid time statement in string: '%s'" % relative_time)
+D_GENERAL = r"[-+]?\d+[a-zA-Z]+"
+D_DETAILS = r"(?P<sign>[-+]?)(?P<num>\d+)(?P<unit_string>[a-zA-Z]+)"
+D_PATTERN = re.compile(D_DETAILS)
 
-    groupdict = match.groupdict()
+S_GENERAL = r"@[a-zA-Z]+\d*"
+S_DETAILS = r"@(?P<unit_string>[a-zA-Z]+)(?P<weekday>\d*)"
+S_PATTERN = re.compile(S_DETAILS)
 
-    assert groupdict["snap"]
+HEAD_PATTERN = re.compile(r"^({snap}|{delta})(.*)".format(snap=S_GENERAL, delta=D_GENERAL))
 
-    result = scheduled_time
 
-    if "prefix" in groupdict and groupdict["prefix"] is not None:
-        result = result + parse_timedelta(groupdict["prefix"])
+class SnapTransformation(object):
+    def __init__(self, group):
+        matchdict = S_PATTERN.match(group).groupdict()
+        assert matchdict
+        self.unit = get_unit(matchdict.get("unit_string"))
+        self.weekday = get_weekday(matchdict.get("weekday"))
 
-    # do snap here:
-    result = add_snap(result, groupdict["snap"])
+    def apply_to(self, dttm):
+        result = dttm
 
-    if "postfix" in groupdict and groupdict["postfix"] is not None:
-        result = result + parse_timedelta(groupdict["postfix"])
+        if self.unit == "weeks" and self.weekday:
+            result = result - timedelta((result.isoweekday() - self.weekday) % 7)
+            result = truncate(result, "days")
+        elif self.unit == "weeks":
+            result = result - timedelta((dttm.isoweekday() - 0) % 7)
+            result = truncate(result, "days")
+        else:
+            # normal case
+            result = truncate(result, self.unit)
+        return result
+
+
+class DeltaTransformation(object):
+    def __init__(self, group):
+        matchdict = D_PATTERN.match(group).groupdict()
+        self.mult = get_mult(matchdict.get("sign"))
+        self.num = get_num(matchdict.get("num"))
+        self.unit = get_unit(matchdict.get("unit_string"))
+
+    def apply_to(self, dttm):
+        return dttm + relativedelta(**{self.unit: self.mult * self.num})  # pylint: disable=star-args
+
+
+def parse(instruction):
+    result = []
+
+    while instruction:
+        match = HEAD_PATTERN.match(instruction)
+        group = match.group(1)
+
+        if S_PATTERN.match(group):
+            transformation = SnapTransformation(group)
+        else:
+            transformation = DeltaTransformation(group)
+
+        result.append(transformation)
+
+        instruction = match.group(2)
+        print instruction
 
     return result

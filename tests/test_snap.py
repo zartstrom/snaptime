@@ -3,7 +3,7 @@
 import pytest
 from datetime import datetime
 
-from snaptime.main import snap
+from snaptime.main import snap, parse, get_unit
 
 
 # pylint: disable=bad-whitespace
@@ -51,3 +51,50 @@ from snaptime.main import snap
 def test_compare_begin_recalc(input_time, rel_time, output_time):
 
     assert snap(input_time, rel_time) == output_time
+
+
+def test_parse_instruction():
+    instr = "-3m@h+3d@d+3w@mon+1y+3h+4s"
+
+    nof_units = parse(instr)
+    assert len(nof_units) == 9
+
+
+def test_empty_instruction():
+    instr = ""
+    dttm = datetime(2016, 7, 17, 15, 17, 0)
+    assert dttm == snap(dttm, instr)
+
+
+@pytest.mark.parametrize("string,result", [
+    ("s", "seconds"),
+    ("sec", "seconds"),
+    ("secs", "seconds"),
+    ("second", "seconds"),
+    ("seconds", "seconds"),
+    ("m", "minutes"),
+    ("min", "minutes"),
+    ("minute", "minutes"),
+    ("minutes", "minutes"),
+    ("h", "hours"),
+    ("hr", "hours"),
+    ("hrs", "hours"),
+    ("hour", "hours"),
+    ("hours", "hours"),
+    ("d", "days"),
+    ("day", "days"),
+    ("days", "days"),
+    ("weeks", "weeks"),
+    ("w", "weeks"),
+    ("week", "weeks"),
+    ("mon", "months"),
+    ("month", "months"),
+    ("months", "months"),
+    ("y", "years"),
+    ("yr", "years"),
+    ("yrs", "years"),
+    ("year", "years"),
+    ("years", "years"),
+])
+def test_get_unit(string, result):
+    assert get_unit(string) == result
