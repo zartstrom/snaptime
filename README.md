@@ -84,6 +84,7 @@ TODOS:
 * refactor a bit
 * motivating example: What if Harry inserts the letter at exactly 16:00h into the mailbox? Change example?!
 * add an epsilon to change the snap behaviour?!
+
    ```python
    >>> dt = datetime(2020, 12, 24)
    >>> snap(dt, "@d")
