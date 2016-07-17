@@ -74,6 +74,22 @@ datetime(2016, 7, 30, 0, 0)
 datetime(2016, 7, 27, 0, 0)
 ```
 
+### Development
 
+Feel free to send comments or pull requests :)
+
+TODOS:
+
+* consolidate error messages, collect all errors vs. fail fast
+* refactor a bit
+* motivating example: What if Harry inserts the letter at exactly 16:00h into the mailbox? Change example?!
+* add an epsilon to change the snap behaviour?!
+   ```python
+   >>> dt = datetime(2020, 12, 24)
+   >>> snap(dt, "@d")
+   datetime(2020, 12, 24)
+   >>> snap(dt, "-epsilon@d")
+   datetime(2020, 12, 23)
+   ```
 
 [splunk-docs]: http://docs.splunk.com/Documentation/Splunk/latest/SearchReference/SearchTimeModifiers#How_to_specify_relative_time_modifiers
