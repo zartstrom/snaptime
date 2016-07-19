@@ -4,7 +4,7 @@ import pytest
 from datetime import datetime
 
 from snaptime import snap
-from snaptime.main import parse, get_unit
+from snaptime.main import parse, get_unit, SnapParseError, SnapUnitError
 
 
 # pylint: disable=bad-whitespace
@@ -99,3 +99,41 @@ def test_empty_instruction():
 ])
 def test_get_unit(string, result):
     assert get_unit(string) == result
+
+
+DTTM = datetime(2016, 7, 17, 15, 17, 0)
+
+
+@pytest.mark.parametrize("instruction,bad_rest", [
+    ("???", "???"),
+    ("+2d@w+4&", "+4&"),
+    ("+2d@w+4&+3y", "+4&+3y"),
+])
+def test_parse_error(instruction, bad_rest):
+    with pytest.raises(SnapParseError) as exc:
+        snap(DTTM, instruction)
+    assert "'%s'" % instruction in exc.value.message
+    assert "'%s'" % bad_rest in exc.value.message
+
+
+@pytest.mark.parametrize("instruction,bad_unit", [
+    ("+1m@xx-3days", "xx"),
+    ("+2d@w+4unknown", "unknown")
+])
+def test_unit_error(instruction, bad_unit):
+    with pytest.raises(SnapUnitError) as exc:
+        snap(DTTM, instruction)
+
+    assert "'%s'" % bad_unit in exc.value.message
+
+
+@pytest.mark.parametrize("instruction,bad_weekday", [
+    ("+1m@w8-3days", "8"),
+    ("+2d@w12+4unknown", "12")
+])
+def test_bad_weekday(instruction, bad_weekday):
+    with pytest.raises(SnapParseError) as exc:
+        snap(DTTM, instruction)
+
+    assert "'%s'" % bad_weekday in exc.value.message
+

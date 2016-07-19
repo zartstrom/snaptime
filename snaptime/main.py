@@ -5,6 +5,14 @@ from dateutil.relativedelta import relativedelta
 import re
 
 
+class SnapParseError(Exception):
+    pass
+
+
+class SnapUnitError(Exception):
+    pass
+
+
 # see also
 # http://docs.splunk.com/Documentation/Splunk/latest/SearchReference/SearchTimeModifiers#How_to_specify_relative_time_modifiers
 UNIT_LISTS = {
@@ -20,19 +28,18 @@ UNIT_LISTS = {
 
 
 def get_unit(string):
-    assert string
 
     for unit, variants in UNIT_LISTS.iteritems():
         if string in variants:
             return unit
 
-    raise ValueError("Unknown unit string <%s>" % string)
+    raise SnapUnitError("Unknown unit string '%s'" % string)
 
 
 def get_weekday(string):
     result = get_num(string, default=None)
-    if result:
-        assert result >= 0 and result <= 7
+    if result and not (result >= 0 and result <= 7):
+        raise SnapParseError("Bad weekday '%s'" % str(result))
     return result
 
 
@@ -40,12 +47,7 @@ def get_num(string, default=1):
     if string is None or string == "":
         return default
 
-    try:
-        result = int(string)
-    except ValueError:
-        raise
-
-    return result
+    return int(string)
 
 
 def get_mult(string):
@@ -59,31 +61,12 @@ def truncate(datetime_, unit):
         result = datetime_.replace(minute=0, second=0, microsecond=0)
     elif unit == "days":
         result = datetime_.replace(hour=0, minute=0, second=0, microsecond=0)
-    elif unit == "weeks":
-        weekday = datetime_.isoweekday()
-        result = datetime_.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=-weekday)
     elif unit == "months":
         result = datetime_.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     elif unit == "years":
         result = datetime_.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
 
     return result
-
-
-def snap(dttm, instruction):
-    """
-    Args:
-        instruction (string): a string that encodes 0 to n transformations of a time, i.e. "-1h@h", "@mon+2d+4h", ...
-        dttm (datetime):
-    Returns:
-        datetime: The datetime resulting from applying all transformations to the input datetime.
-
-    Example:
-        >>> snap(datetime(2016, 1, 1, 15, 30), "-1h@h")
-        datetime(2016, 1, 1, 14)
-    """
-    transformations = parse(instruction)
-    return reduce(lambda dt, transformation: transformation.apply_to(dt), transformations, dttm)
 
 
 D_GENERAL = r"[-+]?\d+[a-zA-Z]+"
@@ -131,10 +114,13 @@ class DeltaTransformation(object):
 
 
 def parse(instruction):
+    instr = instruction
     result = []
 
-    while instruction:
-        match = HEAD_PATTERN.match(instruction)
+    while instr:
+        match = HEAD_PATTERN.match(instr)
+        if not match:
+            raise SnapParseError("Cannot parse instruction '%s'. There is an error at '%s'" % (instruction, instr))
         group = match.group(1)
 
         if S_PATTERN.match(group):
@@ -143,6 +129,22 @@ def parse(instruction):
             transformation = DeltaTransformation(group)
 
         result.append(transformation)
-        instruction = match.group(2)
+        instr = match.group(2)
 
     return result
+
+
+def snap(dttm, instruction):
+    """
+    Args:
+        instruction (string): a string that encodes 0 to n transformations of a time, i.e. "-1h@h", "@mon+2d+4h", ...
+        dttm (datetime):
+    Returns:
+        datetime: The datetime resulting from applying all transformations to the input datetime.
+
+    Example:
+        >>> snap(datetime(2016, 1, 1, 15, 30), "-1h@h")
+        datetime(2016, 1, 1, 14)
+    """
+    transformations = parse(instruction)
+    return reduce(lambda dt, transformation: transformation.apply_to(dt), transformations, dttm)
