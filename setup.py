@@ -6,13 +6,13 @@ from distutils.core import setup
 setup(
     name='snaptime',
     packages=['snaptime'],  # this must be the same as the name above
-    version='0.0.2',
+    version='0.0.3',
     description='Transform timestamps with a simple syntax',
     install_requires=['python-dateutil'],
     author='Philipp Hitzler',
     author_email='phj.hitzler@gmail.com',
     url='https://github.com/zartstrom/snaptime',  # use the URL to the github repo
-    download_url='https://github.com/zartstrom/snaptime/tarball/0.0.2',
+    download_url='https://github.com/zartstrom/snaptime/tarball/0.0.3',
     keywords=['snap', 'datetime', 'date', 'truncate', 'transform'],
     classifiers=[],
 )
