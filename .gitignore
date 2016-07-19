@@ -1,6 +1,7 @@
 dist/
 __pycache__/
 .cache
+.coverage
 snaptime.egg-info
 *.pyc
 MANIFEST
