@@ -55,7 +55,9 @@ def get_mult(string):
 
 
 def truncate(datetime_, unit):
-    if unit == "minutes":
+    if unit == "seconds":
+        result = datetime_.replace(microsecond=0)
+    elif unit == "minutes":
         result = datetime_.replace(second=0, microsecond=0)
     elif unit == "hours":
         result = datetime_.replace(minute=0, second=0, microsecond=0)

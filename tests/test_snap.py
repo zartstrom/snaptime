@@ -45,6 +45,7 @@ from snaptime.main import parse, get_unit, SnapParseError, SnapUnitError
 
     (datetime(2016, 2, 11, 1),          "-1d@d",            datetime(2016, 2, 10, 0)),
     (datetime(2016, 2, 11, 1),          "@d",               datetime(2016, 2, 11, 0)),
+    (datetime(2016, 2, 11, 0, 0, 7, 12),"@s",               datetime(2016, 2, 11, 0, 0, 7)),
     (datetime(2016, 5, 9, 11),          "@w2",              datetime(2016, 5, 3, 0)),
     (datetime(2016, 5, 9, 11),          "@w3",              datetime(2016, 5, 4, 0)),
     (datetime(2016, 5, 9, 11),          "-1w@w4",           datetime(2016, 4, 28, 0))
