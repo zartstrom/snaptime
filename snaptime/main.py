@@ -1,8 +1,12 @@
 
 
+import re
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
-import re
+import pytz
+
+
+UTC = pytz.utc
 
 
 class SnapParseError(Exception):
@@ -103,6 +107,9 @@ class SnapTransformation(object):
             result = truncate(result, self.unit)
         return result
 
+    def with_tz_apply_to(self, dttm, timezone):
+        return self.apply_to(dttm)
+
 
 class DeltaTransformation(object):
     def __init__(self, group):
@@ -112,7 +119,14 @@ class DeltaTransformation(object):
         self.unit = get_unit(matchdict.get("unit_string"))
 
     def apply_to(self, dttm):
-        return dttm + relativedelta(**{self.unit: self.mult * self.num})  # pylint: disable=star-args
+        return dttm + relativedelta(**{self.unit: self.mult * self.num})
+
+    def with_tz_apply_to(self, dttm, timezone):
+        as_loc = timezone.localize(dttm)
+        as_utc = as_loc.astimezone(UTC)
+        new_dt = self.apply_to(as_utc)
+        new_loc = new_dt.astimezone(timezone)
+        return new_loc.replace(tzinfo=None)  # no timezone info
 
 
 def parse(instruction):
@@ -150,3 +164,22 @@ def snap(dttm, instruction):
     """
     transformations = parse(instruction)
     return reduce(lambda dt, transformation: transformation.apply_to(dt), transformations, dttm)
+
+
+def snap_tz(dttm, instruction, timezone):
+    """
+    Args:
+        instruction (string): a string that encodes 0 to n transformations of a time, i.e. "-1h@h", "@mon+2d+4h", ...
+        dttm (datetime):
+        timezone: a pytz timezone
+    Returns:
+        datetime: The datetime resulting from applying all transformations to the input datetime.
+
+    Example:
+        >>> import pytz
+        >>> CET = pytz.timezone("Europe/Berlin")
+        >>> snap(datetime(2017, 3, 26, 3, 30), "-1h@h", CET)
+        datetime(2017, 3, 26, 1, 30)  # switch from winter to summer time!
+    """
+    transformations = parse(instruction)
+    return reduce(lambda dt, transformation: transformation.with_tz_apply_to(dt, timezone), transformations, dttm)

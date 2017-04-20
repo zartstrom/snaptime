@@ -2,9 +2,13 @@
 
 import pytest
 from datetime import datetime
+import pytz
 
-from snaptime import snap
+from snaptime import snap, snap_tz
 from snaptime.main import parse, get_unit, SnapParseError, SnapUnitError
+
+
+CET = pytz.timezone("Europe/Berlin")
 
 
 # pylint: disable=bad-whitespace
@@ -138,3 +142,17 @@ def test_bad_weekday(instruction, bad_weekday):
 
     assert "'%s'" % bad_weekday in exc.value.message
 
+
+@pytest.mark.parametrize("input_time,rel_time,output_time", [
+    (datetime(2017, 3, 26, 3, 30),        "-1h@h",         datetime(2017, 3, 26, 1, 0)),
+    (datetime(2017, 3, 26, 3, 30),        "@h",            datetime(2017, 3, 26, 3, 0)),
+    (datetime(2017, 3, 26, 3, 30),        "-1d@d",         datetime(2017, 3, 25, 0, 0)),
+    (datetime(2017, 3, 26, 3, 30),        "@d",            datetime(2017, 3, 26, 0, 0)),
+
+    (datetime(2017, 3, 6, 3, 30),        "-1h@h",         datetime(2017, 3, 6, 2, 0)),
+    (datetime(2017, 3, 6, 3, 30),        "@h",            datetime(2017, 3, 6, 3, 0)),
+    (datetime(2017, 3, 6, 3, 30),        "-1d@d",         datetime(2017, 3, 5, 0, 0)),
+    (datetime(2017, 3, 6, 3, 30),        "@d",            datetime(2017, 3, 6, 0, 0)),
+])
+def test_snap_tz(input_time, rel_time, output_time):
+    assert snap_tz(input_time, rel_time, CET) == output_time
