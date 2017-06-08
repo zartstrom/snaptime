@@ -122,10 +122,9 @@ class DeltaTransformation(object):
         return dttm + relativedelta(**{self.unit: self.mult * self.num})
 
     def with_tz_apply_to(self, dttm, timezone):
-        as_loc = timezone.localize(dttm)
-        as_utc = as_loc.astimezone(UTC)
-        new_dt = self.apply_to(as_utc)
-        new_loc = new_dt.astimezone(timezone)
+        # is_dst (is daylight saving time) comes only in play if datetime is ambiguous
+        as_loc = timezone.localize(dttm, is_dst=True)
+        new_loc = timezone.normalize(self.apply_to(as_loc))
         return new_loc.replace(tzinfo=None)  # no timezone info
 
 

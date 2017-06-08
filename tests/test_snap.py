@@ -144,15 +144,38 @@ def test_bad_weekday(instruction, bad_weekday):
 
 
 @pytest.mark.parametrize("input_time,rel_time,output_time", [
-    (datetime(2017, 3, 26, 3, 30),        "-1h@h",         datetime(2017, 3, 26, 1, 0)),
-    (datetime(2017, 3, 26, 3, 30),        "@h",            datetime(2017, 3, 26, 3, 0)),
-    (datetime(2017, 3, 26, 3, 30),        "-1d@d",         datetime(2017, 3, 25, 0, 0)),
-    (datetime(2017, 3, 26, 3, 30),        "@d",            datetime(2017, 3, 26, 0, 0)),
-
     (datetime(2017, 3, 6, 3, 30),        "-1h@h",         datetime(2017, 3, 6, 2, 0)),
     (datetime(2017, 3, 6, 3, 30),        "@h",            datetime(2017, 3, 6, 3, 0)),
     (datetime(2017, 3, 6, 3, 30),        "-1d@d",         datetime(2017, 3, 5, 0, 0)),
     (datetime(2017, 3, 6, 3, 30),        "@d",            datetime(2017, 3, 6, 0, 0)),
 ])
 def test_snap_tz(input_time, rel_time, output_time):
+    assert snap_tz(input_time, rel_time, CET) == output_time
+
+
+@pytest.mark.parametrize("input_time,rel_time,output_time", [
+    (datetime(2017, 3, 26, 3, 30),        "-1h@h",         datetime(2017, 3, 26, 1, 0)),
+    (datetime(2017, 3, 26, 3, 30),        "@h",            datetime(2017, 3, 26, 3, 0)),
+    (datetime(2017, 3, 26, 3, 30),        "-1d@d",         datetime(2017, 3, 25, 0, 0)),
+    (datetime(2017, 3, 26, 3, 30),        "@d",            datetime(2017, 3, 26, 0, 0)),
+])
+def test_snap_tz_summertime(input_time, rel_time, output_time):
+    assert snap_tz(input_time, rel_time, CET) == output_time
+
+
+@pytest.mark.parametrize("input_time,rel_time,output_time", [
+    # CEST
+    (datetime(2016, 10, 30, 2, 30),        "-1h@h",         datetime(2016, 10, 30, 1, 0)),
+    (datetime(2016, 10, 30, 2, 30),        "@h",            datetime(2016, 10, 30, 2, 0)),
+])
+def test_snap_tz_wintertime_01(input_time, rel_time, output_time):
+    assert snap_tz(input_time, rel_time, CET) == output_time
+
+
+@pytest.mark.parametrize("input_time,rel_time,output_time", [
+    # CET
+    (datetime(2016, 10, 30, 3, 30),        "-1h@h",         datetime(2016, 10, 30, 2, 0)),
+    (datetime(2016, 10, 30, 3, 30),        "@h",            datetime(2016, 10, 30, 3, 0)),
+])
+def test_snap_tz_wintertime_02(input_time, rel_time, output_time):
     assert snap_tz(input_time, rel_time, CET) == output_time
