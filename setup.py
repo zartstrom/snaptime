@@ -6,7 +6,7 @@ from distutils.core import setup
 setup(
     name='snaptime',
     packages=['snaptime'],  # this must be the same as the name above
-    version='0.2.2',
+    version='0.2.3',
     description='Transform timestamps with a simple DSL',  # think of including iconic '+1d@d' or similar
     install_requires=['python-dateutil', 'pytz'],
     author='Philipp Hitzler',
