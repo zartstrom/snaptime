@@ -12,7 +12,7 @@ setup(
     author='Philipp Hitzler',
     author_email='phj.hitzler@gmail.com',
     url='https://github.com/zartstrom/snaptime',  # use the URL to the github repo
-    download_url='https://github.com/zartstrom/snaptime/tarball/0.2.2',
+    download_url='https://github.com/zartstrom/snaptime/tarball/0.2.3',
     keywords=['snap', 'datetime', 'date', 'truncate', 'transform'],
     classifiers=[],
 )

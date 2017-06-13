@@ -1,7 +1,7 @@
 
 
 import re
-from datetime import timedelta
+from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import pytz
 
@@ -17,17 +17,25 @@ class SnapUnitError(Exception):
     pass
 
 
+SECONDS = "seconds"
+MINUTES = "minutes"
+HOURS = "hours"
+DAYS = "days"
+WEEKS = "weeks"
+MONTHS = "months"
+YEARS = "years"
+
 # see also
 # http://docs.splunk.com/Documentation/Splunk/latest/SearchReference/SearchTimeModifiers#How_to_specify_relative_time_modifiers
 UNIT_LISTS = {
-    "seconds": ["s", "sec", "secs", "second", "seconds"],
-    "minutes": ["m", "min", "minute", "minutes"],
-    "hours": ["h", "hr", "hrs", "hour", "hours"],
-    "days": ["d", "day", "days"],
-    "weeks": ["w", "week", "weeks"],
-    "months": ["mon", "month", "months"],
+    SECONDS: ["s", "sec", "secs", "second", "seconds"],
+    MINUTES: ["m", "min", "minute", "minutes"],
+    HOURS: ["h", "hr", "hrs", "hour", "hours"],
+    DAYS: ["d", "day", "days"],
+    WEEKS: ["w", "week", "weeks"],
+    MONTHS: ["mon", "month", "months"],
     # "quarters": ["q", "qtr", "qtrs", "quarter", "quarters"],  # not supported by relativedelta
-    "years": ["y", "yr", "yrs", "year", "years"]
+    YEARS: ["y", "yr", "yrs", "year", "years"]
 }
 
 
@@ -107,8 +115,19 @@ class SnapTransformation(object):
             result = truncate(result, self.unit)
         return result
 
-    def with_tz_apply_to(self, dttm, timezone):
-        return self.apply_to(dttm)
+    def apply_to_with_tz(self, dttm, timezone):
+        """We make sure that after truncating we use the correct timezone,
+        even if we 'jump' over a daylight saving time switch.
+
+        I.e. if we apply "@d" to `Sun Oct 30 04:30:00 CET 2016` (1477798200)
+        we want to have `Sun Oct 30 00:00:00 CEST 2016` (1477778400)
+        but not `Sun Oct 30 00:00:00 CET 2016` (1477782000)
+        """
+        result = self.apply_to(dttm)
+        if self.unit in [DAYS, WEEKS, MONTHS, YEARS]:
+            naive_dttm = datetime(result.year, result.month, result.day)
+            result = timezone.localize(naive_dttm)
+        return result
 
 
 class DeltaTransformation(object):
@@ -121,11 +140,8 @@ class DeltaTransformation(object):
     def apply_to(self, dttm):
         return dttm + relativedelta(**{self.unit: self.mult * self.num})
 
-    def with_tz_apply_to(self, dttm, timezone):
-        # is_dst (is daylight saving time) comes only in play if datetime is ambiguous
-        as_loc = timezone.localize(dttm, is_dst=True)
-        new_loc = timezone.normalize(self.apply_to(as_loc))
-        return new_loc.replace(tzinfo=None)  # no timezone info
+    def apply_to_with_tz(self, dttm, timezone):
+        return timezone.normalize(self.apply_to(dttm))
 
 
 def parse(instruction):
@@ -181,4 +197,4 @@ def snap_tz(dttm, instruction, timezone):
         datetime(2017, 3, 26, 1, 30)  # switch from winter to summer time!
     """
     transformations = parse(instruction)
-    return reduce(lambda dt, transformation: transformation.with_tz_apply_to(dt, timezone), transformations, dttm)
+    return reduce(lambda dt, transformation: transformation.apply_to_with_tz(dt, timezone), transformations, dttm)
