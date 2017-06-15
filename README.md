@@ -1,9 +1,9 @@
 
 ### snaptime
 
-The snaptime package is about transforming timestamps in a simple manner.
+The snaptime package is about transforming timestamps simply.
 
-It is inspired by splunks relative time modifiers, see docs [here][splunk-docs].
+It is inspired by splunks relative time modifiers, see their docs [here][splunk-docs].
 
 ### Examples
 
@@ -11,18 +11,16 @@ It is inspired by splunks relative time modifiers, see docs [here][splunk-docs].
 >>> from datetime import datetime
 >>> from snaptime import snap
 
->>> dttm = datetime(2018, 10, 28, 23)
-
->>> snap(dttm, "@d")
+>>> snap(datetime(2018, 10, 28, 23), "@d")
 datetime.datetime(2018, 10, 28, 0, 0)
 
->>> snap(dttm, "+3h")
+>>> snap(datetime(2018, 10, 28, 23), "+3h")
 datetime.datetime(2018, 10, 29, 2, 0)
 
->>> snap(dttm, "+3h@d")
+>>> snap(datetime(2018, 10, 28, 23), "+3h@d")
 datetime.datetime(2018, 10, 29, 0, 0)
 
->>> snap(dttm, "+3h@d+15m")
+>>> snap(datetime(2018, 10, 28, 23), "+3h@d+15m")
 datetime.datetime(2018, 10, 29, 0, 15)
 ```
 
@@ -97,18 +95,19 @@ datetime.datetime(2017, 3, 26, 3, 44, tzinfo=<DstTzInfo 'Europe/Berlin' CEST+2:0
 datetime.datetime(2017, 3, 26, 6, 44, tzinfo=<DstTzInfo 'Europe/Berlin' CEST+2:00:00 DST>)
 >>> # Everything ok
 
+>>> # .. but here is the danger zone
 >>> snap(dttm, "@d")
 datetime.datetime(2017, 3, 26, 0, 0, tzinfo=<DstTzInfo 'Europe/Berlin' CEST+2:00:00 DST>)
 ```
 
-Be careful, this probably not what we want. There is a daylight saving time switch at 2h. We most probably want this:
+This probably not what we want. There is a daylight saving time switch at 2h. We most probably want this result:
 
 ```python
 >>> CET.localize(datetime(2017, 3, 26))
 datetime.datetime(2017, 3, 26, 0, 0, tzinfo=<DstTzInfo 'Europe/Berlin' CET+1:00:00 STD>)
 ```
 
-The resulting datetimes are different (their epoch seconds differ by one hour). There is snap_tz to the rescue. It requires an additional timezone parameter and handles the situation correctly:
+The resulting datetimes are different, as the tzinfo indicates (their epoch seconds differ by one hour). There is snap_tz to the rescue. It requires an additional timezone parameter and handles the situation correctly:
 
 ```python
 >>> snap_tz(dttm, "@d", CET)
