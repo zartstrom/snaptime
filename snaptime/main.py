@@ -1,6 +1,7 @@
 
 
 import re
+from functools import reduce
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import pytz
@@ -41,7 +42,7 @@ UNIT_LISTS = {
 
 def get_unit(string):
 
-    for unit, variants in UNIT_LISTS.iteritems():
+    for unit, variants in UNIT_LISTS.items():
         if string in variants:
             return unit
 
