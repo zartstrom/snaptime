@@ -183,10 +183,12 @@ def snap(dttm, instruction):
 
 
 def snap_tz(dttm, instruction, timezone):
-    """
+    """This function handles timezone aware datetimes.
+    Sometimes it is necessary to keep daylight saving time switches in mind.
+
     Args:
         instruction (string): a string that encodes 0 to n transformations of a time, i.e. "-1h@h", "@mon+2d+4h", ...
-        dttm (datetime):
+        dttm (datetime): a datetime with timezone
         timezone: a pytz timezone
     Returns:
         datetime: The datetime resulting from applying all transformations to the input datetime.
@@ -194,8 +196,13 @@ def snap_tz(dttm, instruction, timezone):
     Example:
         >>> import pytz
         >>> CET = pytz.timezone("Europe/Berlin")
-        >>> snap(datetime(2017, 3, 26, 3, 30), "-1h@h", CET)
-        datetime(2017, 3, 26, 1, 30)  # switch from winter to summer time!
+        >>> dttm = CET.localize(datetime(2017, 3, 26, 3, 44)
+        >>> dttm
+        datetime.datetime(2017, 3, 26, 3, 44, tzinfo=<DstTzInfo 'Europe/Berlin' CEST+2:00:00 DST>)
+
+        >>> snap_tz(dttm, "-2h@h", CET)
+        datetime.datetime(2017, 3, 26, 0, 0, tzinfo=<DstTzInfo 'Europe/Berlin' CET+1:00:00 STD>)
+        >>> # switch from winter to summer time!
     """
     transformations = parse(instruction)
     return reduce(lambda dt, transformation: transformation.apply_to_with_tz(dt, timezone), transformations, dttm)

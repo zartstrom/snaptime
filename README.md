@@ -5,6 +5,27 @@ The snaptime package is about transforming timestamps in a simple manner.
 
 It is inspired by splunks relative time modifiers, see docs [here][splunk-docs].
 
+### Examples
+
+```python
+>>> from datetime import datetime
+>>> from snaptime import snap
+
+>>> dttm = datetime(2018, 10, 28, 23)
+
+>>> snap(dttm, "@d")
+datetime.datetime(2018, 10, 28, 0, 0)
+
+>>> snap(dttm, "+3h")
+datetime.datetime(2018, 10, 29, 2, 0)
+
+>>> snap(dttm, "+3h@d")
+datetime.datetime(2018, 10, 29, 0, 0)
+
+>>> snap(dttm, "+3h@d+15m")
+datetime.datetime(2018, 10, 29, 0, 15)
+```
+
 ### Motivating example:
 Say Harry wants to send a letter and there is mailbox right to his door, which is cleared every day at 16:00h. The post delivers letters the next day at 11:00h. So given a datetime `t` - at which Harry throws the letter into the mailbox - when does the letter get delivered?
 
@@ -60,20 +81,38 @@ For a given datetime `t` i.e. this assertion holds true
 assert snap(t, "-3hours@day+2weeks@month") == snap(t, "-3hrs@d+2w@mon")
 ```
 
-### Examples
+### Timezone aware timestamps
+
+There is also a function snap_tz, that handles daylight saving time switches.
 
 ```python
 >>> from datetime import datetime
->>> from snaptime import snap
+>>> from snaptime import snap, snap_tz
 
->>> dt = datetime(2016, 7, 30, 15, 23, 59)
->>> snap(dt, "@d")
-datetime(2016, 7, 30, 0, 0)
+>>> dttm = CET.localize(datetime(2017, 3, 26, 3, 44))
+>>> dttm
+datetime.datetime(2017, 3, 26, 3, 44, tzinfo=<DstTzInfo 'Europe/Berlin' CEST+2:00:00 DST>)
 
->>> snap(dt, "-3d@d")
-datetime(2016, 7, 27, 0, 0)
+>>> snap(dttm, "+3h")
+datetime.datetime(2017, 3, 26, 6, 44, tzinfo=<DstTzInfo 'Europe/Berlin' CEST+2:00:00 DST>)
+>>> # Everything ok
 
->>> # some more here
+>>> snap(dttm, "@d")
+datetime.datetime(2017, 3, 26, 0, 0, tzinfo=<DstTzInfo 'Europe/Berlin' CEST+2:00:00 DST>)
+```
+
+Be careful, this probably not what we want. There is a daylight saving time switch at 2h. We most probably want this:
+
+```python
+>>> CET.localize(datetime(2017, 3, 26))
+datetime.datetime(2017, 3, 26, 0, 0, tzinfo=<DstTzInfo 'Europe/Berlin' CET+1:00:00 STD>)
+```
+
+The resulting datetimes are different (their epoch seconds differ by one hour). There is snap_tz to the rescue. It requires an additional timezone parameter and handles the situation correctly:
+
+```python
+>>> snap_tz(dttm, "@d", CET)
+datetime.datetime(2017, 3, 26, 0, 0, tzinfo=<DstTzInfo 'Europe/Berlin' CET+1:00:00 STD>)
 ```
 
 ### Development
